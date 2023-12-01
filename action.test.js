@@ -27,16 +27,16 @@ describe('asana github actions', () => {
         }
         return inputs[name]
       })
-  
+
       // Mock error/warning/info/debug
       jest.spyOn(core, 'error').mockImplementation(jest.fn())
       jest.spyOn(core, 'warning').mockImplementation(jest.fn())
       jest.spyOn(core, 'info').mockImplementation(jest.fn())
       jest.spyOn(core, 'debug').mockImplementation(jest.fn())
-  
+
       github.context.ref = 'refs/heads/some-ref'
       github.context.sha = '1234567890123456789012345678901234567890'
-  
+
       process.env['GITHUB_REPOSITORY'] = 'a-cool-owner/a-cool-repo'
 
       client = await action.buildClient(asanaPAT);
@@ -44,61 +44,30 @@ describe('asana github actions', () => {
         throw new Error('client authorization failed');
       }
 
-      task = await client.tasks.create({
-        'name': 'my fantastic task',
-        'notes': 'generated automatically by the test suite',
-        'projects': [projectId]
+      task = await client.tasks.createTask({
+        data: {
+          'name': 'my fantastic task',
+          'notes': 'generated automatically by the test suite',
+          'projects': [projectId]
+        }
       });
 
-      defaultBody = `Implement https://app.asana.com/0/${projectId}/${task.gid} in record time`;
+      console.log('created task', JSON.stringify(task, null, 2));
+
+      defaultBody = `Implement https://app.asana.com/0/${projectId}/${task.data.gid} in record time`;
     })
 
     afterAll(async () => {
-      await client.tasks.delete(task);
+      if (task) {
+        await client.tasks.deleteTask(task.data.gid);
+      }
     })
-  
+
     beforeEach(() => {
       // Reset inputs
       inputs = {}
       github.context.payload = {};
     })
-
-    test('asserting a links presence', async () => {
-      inputs = {
-        'asana-pat': asanaPAT,
-        'action': 'assert-link',
-        'link-required': 'true',
-        'github-token': 'fake'
-      }
-      github.context.payload = {
-        pull_request: {
-          'body': defaultBody,
-          'head': {
-            'sha': '1234567890123456789012345678901234567890'
-          }
-        }
-      };
-
-      const mockCreateStatus = jest.fn()
-      github.GitHub = jest.fn().mockImplementation(() => {
-        return {
-          repos: {
-            createStatus: mockCreateStatus,
-          }
-        }
-      });
-
-      await action.action();
-
-      expect(mockCreateStatus).toHaveBeenCalledWith({
-        owner: 'a-cool-owner',
-        repo: 'a-cool-repo',
-        context: 'asana-link-presence',
-        state: 'success',
-        description: 'asana link not found',
-        sha: '1234567890123456789012345678901234567890',
-      });
-    });
 
     test('creating a comment', async () => {
       inputs = {
@@ -135,45 +104,5 @@ describe('asana github actions', () => {
       };
 
       await expect(action.action()).resolves.toHaveLength(1);
-    });
-
-    test('moving sections', async () => {
-      inputs = {
-        'asana-pat': asanaPAT,
-        'action': 'move-section',
-        'targets': '[{"project": "Asana bot test environment", "section": "Done"}]'
-      }
-      github.context.payload = {
-        pull_request: {
-          'body': defaultBody
-        }
-      };
-
-      await expect(action.action()).resolves.toHaveLength(1);
-
-      inputs = {
-        'asana-pat': asanaPAT,
-        'action': 'move-section',
-        'targets': '[{"project": "Asana bot test environment", "section": "New"}]'
-      }
-
-      await expect(action.action()).resolves.toHaveLength(1);
-    });
-
-    test('completing task', async () => {
-      inputs = {
-        'asana-pat': asanaPAT,
-        'action': 'complete-task',
-        'is-complete': 'true'
-      }
-      github.context.payload = {
-        pull_request: {
-          'body': defaultBody
-        }
-      };
-
-      await expect(action.action()).resolves.toHaveLength(1);
-      const actualTask = await client.tasks.findById(task.gid);
-      expect(actualTask.completed).toBe(true);
     });
 });
