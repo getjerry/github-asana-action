@@ -33,8 +33,8 @@ inputs:
     description: 'Is the task complete'
     required: false
 branding:
-  icon: 'chevron-right'  
+  icon: 'chevron-right'
   color: 'gray-dark'
 runs:
-  using: 'node12'
+  using: 'node16'
   main: 'index.js'
