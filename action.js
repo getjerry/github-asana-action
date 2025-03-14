@@ -1,6 +1,7 @@
 const core = require('@actions/core');
 const github = require('@actions/github');
 const Asana = require('asana');
+const { extractTaskIds } = require("./utils");
 
 async function findComment(client, taskId, commentId) {
   let stories;
@@ -53,9 +54,7 @@ async function action() {
     ASANA_PAT = core.getInput('asana-pat', { required: true }),
     ACTION = core.getInput('action', { required: true }),
     TRIGGER_PHRASE = core.getInput('trigger-phrase') || '',
-    PULL_REQUEST = github.context.payload.pull_request,
-    REGEX_STRING = `${TRIGGER_PHRASE}(?:\s*)https:\\/\\/app.asana.com\\/(\\d+)\\/(?<project>\\d+)\\/(?<task>\\d+)`,
-    REGEX = new RegExp(REGEX_STRING, 'g')
+    PULL_REQUEST = github.context.payload.pull_request
   ;
 
   console.log('pull_request', PULL_REQUEST);
@@ -65,16 +64,8 @@ async function action() {
     throw new Error('client authorization failed');
   }
 
-  console.info('looking in body', PULL_REQUEST.body, 'regex', REGEX_STRING);
-  let foundAsanaTasks = [];
-  while ((parseAsanaURL = REGEX.exec(PULL_REQUEST.body)) !== null) {
-    const taskId = parseAsanaURL.groups.task;
-    if (!taskId) {
-      core.error(`Invalid Asana task URL after the trigger phrase ${TRIGGER_PHRASE}`);
-      continue;
-    }
-    foundAsanaTasks.push(taskId);
-  }
+  console.info('looking in body', PULL_REQUEST.body);
+  const foundAsanaTasks = extractTaskIds(PULL_REQUEST.body, TRIGGER_PHRASE);
   console.info(`found ${foundAsanaTasks.length} taskIds:`, foundAsanaTasks.join(','));
 
   console.info('calling', ACTION);
