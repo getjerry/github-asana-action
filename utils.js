@@ -14,7 +14,7 @@ function extractTaskIds(body, triggerPhase) {
     // https://app.asana.com/1/1234567890123456/project/1234567890123456/task/1234567890123456?focus=true
     new RegExp(`${triggerPhase}(?:\s*)https:\\/\\/app.asana.com\\/1\\/.+\\/task\\/(?<task>\\d+)`, 'g'),
     // https://app.asana.com/1/1234567890123456/inbox/1234567890123456/item/1234567890123456/story/1234567890123456
-    new RegExp(`${triggerPhase}(?:\s*)https:\\/\\/app.asana.com\\/1\\/.+\\/item\\/(?<task>\\d+)`, 'g'),
+    new RegExp(`${triggerPhase}(?:\s*)https:\\/\\/app.asana.com\\/1\\/\\d+\\/inbox\\/.+\\/item\\/(?<task>\\d+)`, 'g'),
   ]
 
   let parseAsanaURL;
