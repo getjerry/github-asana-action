@@ -138,7 +138,7 @@ async function action() {
       }
       return comments;
     }
-    case 'update-comment': {
+    case 'upsert-comment': {
       // Upserts a comment in place: editing an existing story does not notify
       // task followers again, unlike remove-comment + add-comment.
       const commentId = core.getInput('comment-id', { required: true }),

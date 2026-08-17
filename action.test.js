@@ -90,10 +90,10 @@ describe('asana github actions', () => {
       await expect(action.action()).resolves.toHaveLength(0);
     });
 
-    test('updating a comment', async () => {
+    test('upserting an existing comment updates it in place', async () => {
       inputs = {
         'asana-pat': asanaPAT,
-        'action': 'update-comment',
+        'action': 'upsert-comment',
         // note: relies on the comment created in `creating a comment` test
         'comment-id': commentId,
         'text': 'rad stuff, edited',
@@ -118,9 +118,9 @@ describe('asana github actions', () => {
       const upsertCommentId = `${commentId}-upsert`;
       inputs = {
         'asana-pat': asanaPAT,
-        'action': 'update-comment',
+        'action': 'upsert-comment',
         'comment-id': upsertCommentId,
-        'text': 'created via update-comment',
+        'text': 'created via upsert-comment',
       }
       github.context.payload = {
         pull_request: {
