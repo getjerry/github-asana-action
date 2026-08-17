@@ -90,6 +90,51 @@ describe('asana github actions', () => {
       await expect(action.action()).resolves.toHaveLength(0);
     });
 
+    test('upserting an existing comment updates it in place', async () => {
+      inputs = {
+        'asana-pat': asanaPAT,
+        'action': 'upsert-comment',
+        // note: relies on the comment created in `creating a comment` test
+        'comment-id': commentId,
+        'text': 'rad stuff, edited',
+        'is-pinned': 'true'
+      }
+      github.context.payload = {
+        pull_request: {
+          'body': defaultBody
+        }
+      };
+
+      // updates the existing comment in place instead of adding a new one
+      await expect(action.action()).resolves.toHaveLength(1);
+
+      const comments = (await client.stories.getStoriesForTask(task.data.gid)).data
+        .filter(story => story.type === 'comment' && story.text?.indexOf(commentId) !== -1);
+      expect(comments).toHaveLength(1);
+      expect(comments[0].text).toContain('rad stuff, edited');
+    });
+
+    test('upserting a comment that does not exist yet', async () => {
+      const upsertCommentId = `${commentId}-upsert`;
+      inputs = {
+        'asana-pat': asanaPAT,
+        'action': 'upsert-comment',
+        'comment-id': upsertCommentId,
+        'text': 'created via upsert-comment',
+      }
+      github.context.payload = {
+        pull_request: {
+          'body': defaultBody
+        }
+      };
+
+      // no comment with this id exists, so it falls back to adding one
+      await expect(action.action()).resolves.toHaveLength(1);
+
+      inputs.action = 'remove-comment';
+      await expect(action.action()).resolves.toHaveLength(1);
+    });
+
     test('removing a comment', async () => {
       inputs = {
         'asana-pat': asanaPAT,
