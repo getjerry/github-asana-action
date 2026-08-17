@@ -66,6 +66,30 @@ async function addComment(client, taskId, commentId, text, isPinned) {
   }
 }
 
+async function updateComment(client, storyGid, commentId, text, isPinned) {
+  if (commentId) {
+    text += '\n' + commentId;
+  }
+  try {
+    console.log('updating comment ' + storyGid, JSON.stringify({
+      data: {
+        html_text: text,
+        is_pinned: isPinned,
+      }
+    }, null, 2));
+    const story = await client.stories.updateStory({
+      data: {
+        html_text: `<body>${text}</body>`,
+        is_pinned: isPinned,
+      }
+    }, storyGid);
+    console.log('updated comment', JSON.stringify(story, null, 2));
+    return story.data;
+  } catch (error) {
+    console.error('rejecting promise', error);
+  }
+}
+
 function buildClient(asanaPAT) {
   let client = Asana.ApiClient.instance;
   let token = client.authentications['token'];
@@ -110,6 +134,26 @@ async function action() {
           }
         }
         const comment = await addComment(client, taskId, commentId, htmlText, isPinned);
+        comments.push(comment);
+      }
+      return comments;
+    }
+    case 'update-comment': {
+      // Upserts a comment in place: editing an existing story does not notify
+      // task followers again, unlike remove-comment + add-comment.
+      const commentId = core.getInput('comment-id', { required: true }),
+        htmlText = core.getInput('text', { required: true }),
+        isPinned = core.getInput('is-pinned') === 'true';
+      const comments = [];
+      for (const taskId of foundAsanaTasks) {
+        const existingComment = await findComment(client, taskId, commentId);
+        let comment;
+        if (existingComment) {
+          console.info('found existing comment', existingComment.gid);
+          comment = await updateComment(client, existingComment.gid, commentId, htmlText, isPinned);
+        } else {
+          comment = await addComment(client, taskId, commentId, htmlText, isPinned);
+        }
         comments.push(comment);
       }
       return comments;

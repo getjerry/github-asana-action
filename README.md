@@ -16,7 +16,7 @@ This action integrates asana with github.
 
 ### `action`
 
-**Required** The action to be performed assert-link|add-comment|remove-comment|move-section|complete-task
+**Required** The action to be performed assert-link|add-comment|update-comment|remove-comment|move-section|complete-task
 
 ### `github-token`
 
@@ -28,15 +28,15 @@ This action integrates asana with github.
 
 ### `text`
 
-**Required for `add-comment`** If any comment is provided, the action will add a comment to the specified asana task with the text.
+**Required for `add-comment` and `update-comment`** If any comment is provided, the action will add a comment to the specified asana task with the text.
 
 ### `comment-id`
 
-**Required for `remove-comment`, Optional for `add-comment`** When provided in add-comment, gives a unique identifier that can later be used to delete the comment
+**Required for `remove-comment` and `update-comment`, Optional for `add-comment`** When provided in add-comment, gives a unique identifier that can later be used to update or delete the comment
 
 ### `is-pinned`
 
-**Optional for `add-comment`** Mark a comment as pinned in asana
+**Optional for `add-comment` and `update-comment`** Mark a comment as pinned in asana
 
 ### `targets`
 
@@ -94,6 +94,32 @@ jobs:
           action: 'add-comment'
           comment-id: "#pr:${{env.PR_NUMBER}}"
           text: 'View Pull Request: https://github.com/everphone-gmbh/frontend-symfony/pull/${{env.PR_NUMBER}}'
+          is-pinned: true
+```
+
+```yaml
+name: Update a comment in place
+
+# Edits the existing comment with the same comment-id (or adds it when
+# missing). Unlike remove-comment + add-comment, editing does not notify
+# task followers again.
+
+on:
+  pull_request:
+    types: [synchronize]
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: set pr number
+        run: echo "::set-env name=PR_NUMBER::$(echo -n "${GITHUB_REF}" | awk 'BEGIN { FS = "/" } ; { print $3 }')"
+      - uses: everphone-gmbh/github-asana-action
+        with:
+          asana-pat: ${{ secrets.ASANA_PAT }}
+          action: 'update-comment'
+          comment-id: "#pr:${{env.PR_NUMBER}}"
+          text: 'View Pull Request (updated): https://github.com/everphone-gmbh/frontend-symfony/pull/${{env.PR_NUMBER}}'
           is-pinned: true
 ```
 
