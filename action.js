@@ -31,15 +31,16 @@ async function moveSection(client, taskId, targets) {
   }
 }
 
+// Only match comments posted by this token's user: a person may paste the
+// marker into a manual comment, which we can neither delete nor update.
 async function findComment(client, taskId, commentId) {
-  let stories;
-  try {
-    stories = await client.stories.getStoriesForTask(taskId);
-  } catch (error) {
-    throw error;
-  }
+  const me = (await client.users.getUser('me')).data;
+  const stories = await client.stories.getStoriesForTask(taskId, { opt_fields: 'type,text,created_by' });
 
-  return stories.data.find(story => story.type === 'comment' && story.text?.indexOf(commentId) !== -1);
+  return stories.data.find(story =>
+    story.type === 'comment'
+    && story.created_by?.gid === me.gid
+    && story.text?.indexOf(commentId) !== -1);
 }
 
 async function addComment(client, taskId, commentId, text, isPinned) {
@@ -99,6 +100,7 @@ function buildClient(asanaPAT) {
     tasks: new Asana.TasksApi(client),
     stories: new Asana.StoriesApi(client),
     sections: new Asana.SectionsApi(client),
+    users: new Asana.UsersApi(client),
   };
 }
 
